@@ -1,0 +1,9 @@
+{
+  "short_name": "InterviewAI",
+  "name": "InterviewAI",
+  "icons": [],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0B0E1F",
+  "background_color": "#0B0E1F"
+}

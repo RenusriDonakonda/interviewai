@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: interviewai-api
+    env: node
+    plan: starter
+    buildCommand: "npm install"
+    startCommand: "npm start"
+    rootDir: backend
+    envVars:
+      - key: MONGODB_URI
+        value: mongodb://interviewai:password@cluster
+      - key: JWT_SECRET
+        value: interviewai-secret-key
+      - key: PORT
+        value: 5000
+      - key: NODE_ENV
+        value: production
+      - key: AI_MODEL_VERSION
+        value: 2.0
