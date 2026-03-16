@@ -1,8 +1,9 @@
 [build]
+  base = "frontend"
   command = "npm run build"
   publish = "build"
 
 [build.environment]
-  REACT_APP_API_URL = "https://api.interviewai.app"
+  REACT_APP_API_URL = "https://interviewai-backend-zyo8.onrender.com"
   REACT_APP_AI_ENDPOINT = "https://ai.interviewai.app"
   REACT_APP_VERSION = "1.0.0"
