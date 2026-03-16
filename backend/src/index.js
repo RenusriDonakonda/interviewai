@@ -41,12 +41,14 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
+app.listen(PORT, () => {
+  console.log(`InterviewAI API listening on port ${PORT}`);
+});
+
 connectDb()
   .then(() => {
-    app.listen(PORT, () => {
-      console.log(`InterviewAI API listening on port ${PORT}`);
-    });
+    console.log("Database connected");
   })
   .catch((error) => {
-    console.error("Database connection failed", error);
+    console.error("Database connection failed", error.message);
   });
