@@ -6,7 +6,8 @@ const uploadResume = async (req, res, next) => {
     const buffer = req.file?.buffer;
     if (!buffer) return res.status(400).json({ message: "No file uploaded" });
 
-    const text = await parseResumeBuffer(buffer);
+    const filename = req.file?.originalname || "";
+    const text = await parseResumeBuffer(buffer, filename);
     const skills = extractSkills(text);
     const experience = detectExperienceLevel(text);
 

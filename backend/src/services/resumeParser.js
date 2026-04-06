@@ -1,4 +1,5 @@
 const pdfParse = require("pdf-parse");
+const path = require("path");
 
 const skillDatabase = {
   Frontend: ["react", "javascript", "typescript", "css", "html", "redux"],
@@ -7,7 +8,12 @@ const skillDatabase = {
   "Soft Skills": ["leadership", "communication", "collaboration", "problem solving"]
 };
 
-const parseResumeBuffer = async (buffer) => {
+const parseResumeBuffer = async (buffer, filename = "") => {
+  const lowerName = filename.toLowerCase();
+  if (lowerName.endsWith(".txt")) {
+    return buffer.toString("utf8");
+  }
+
   try {
     const data = await pdfParse(buffer);
     return data.text || "";
@@ -16,6 +22,8 @@ const parseResumeBuffer = async (buffer) => {
   }
 };
 
+const normalizeSkill = (skill) => skill.replace(/\b\w/g, (char) => char.toUpperCase());
+
 const extractSkills = (text = "") => {
   const lower = text.toLowerCase();
   const extracted = [];
@@ -23,11 +31,14 @@ const extractSkills = (text = "") => {
   Object.entries(skillDatabase).forEach(([category, skills]) => {
     skills.forEach((skill) => {
       if (lower.includes(skill)) {
-        extracted.push({
-          skill: skill.replace(/\b\w/g, (char) => char.toUpperCase()),
-          category,
-          confidence: 0.8
-        });
+        const normalized = normalizeSkill(skill);
+        if (!extracted.find((item) => item.skill === normalized)) {
+          extracted.push({
+            skill: normalized,
+            category,
+            confidence: 0.8
+          });
+        }
       }
     });
   });

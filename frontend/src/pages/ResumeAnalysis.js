@@ -53,9 +53,11 @@ const ResumeAnalysis = () => {
             onDrop={onDrop}
           >
             <p>Drag & drop your resume or browse</p>
+            <p className="section-caption">Accepted: PDF or TXT (max 2MB)</p>
             <input
               ref={fileRef}
               type="file"
+              accept=".pdf,.txt"
               style={{ display: "none" }}
               onChange={(event) => handleUpload(event.target.files?.[0])}
             />
