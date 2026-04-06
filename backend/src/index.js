@@ -5,6 +5,7 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const connectDb = require("./config/db");
 const errorHandler = require("./middleware/errorHandler");
+const mongoose = require("mongoose");
 
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
@@ -23,6 +24,13 @@ app.use(morgan("dev"));
 
 app.get("/", (req, res) => {
   res.json({ status: "InterviewAI API running" });
+});
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    dbState: mongoose.connection.readyState
+  });
 });
 
 app.use("/api/auth", authRoutes);

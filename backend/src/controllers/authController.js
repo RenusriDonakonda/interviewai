@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 const User = require("../models/User");
 
 const createToken = (user) => {
@@ -10,6 +11,9 @@ const createToken = (user) => {
 
 const register = async (req, res, next) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: "InterviewAI is experiencing high traffic. Your opportunity awaits shortly." });
+    }
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -28,6 +32,9 @@ const register = async (req, res, next) => {
 
 const login = async (req, res, next) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: "InterviewAI is experiencing high traffic. Your opportunity awaits shortly." });
+    }
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
