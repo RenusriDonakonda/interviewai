@@ -1,6 +1,16 @@
-const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const getApiBase = () => {
+  return (
+    process.env.REACT_APP_API_URL ||
+    window.__INTERVIEWAI_API_URL__ ||
+    ""
+  );
+};
 
 const request = async (path, options = {}) => {
+  const apiBase = getApiBase();
+  if (!apiBase) {
+    throw new Error("API URL is not configured. Set REACT_APP_API_URL in Netlify and redeploy.");
+  }
   const token = localStorage.getItem("interviewai_token");
   const headers = {
     "Content-Type": "application/json",
@@ -8,7 +18,7 @@ const request = async (path, options = {}) => {
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const response = await fetch(`${apiBase}${path}`, { ...options, headers });
   const isJson = response.headers.get("content-type")?.includes("application/json");
   const data = isJson ? await response.json() : await response.blob();
   if (!response.ok) {
@@ -28,10 +38,14 @@ export const api = {
   analytics: () => request("/api/analytics"),
   resumeSkills: () => request("/api/resume/skills"),
   resumeUpload: async (file) => {
+    const apiBase = getApiBase();
+    if (!apiBase) {
+      throw new Error("API URL is not configured. Set REACT_APP_API_URL in Netlify and redeploy.");
+    }
     const token = localStorage.getItem("interviewai_token");
     const form = new FormData();
     form.append("file", file);
-    const response = await fetch(`${API_BASE}/api/resume/upload`, {
+    const response = await fetch(`${apiBase}/api/resume/upload`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form
