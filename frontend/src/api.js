@@ -22,6 +22,9 @@ const request = async (path, options = {}) => {
   const isJson = response.headers.get("content-type")?.includes("application/json");
   const data = isJson ? await response.json() : await response.blob();
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem("interviewai_token");
+    }
     const message = data?.message || "Request failed";
     throw new Error(message);
   }
@@ -51,7 +54,12 @@ export const api = {
       body: form
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data?.message || "Upload failed");
+    if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem("interviewai_token");
+      }
+      throw new Error(data?.message || "Upload failed");
+    }
     return data;
   },
   report: (payload) => request("/api/reports/generate", { method: "POST", body: JSON.stringify(payload) }),
