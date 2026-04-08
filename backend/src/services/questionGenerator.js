@@ -1,6 +1,20 @@
 const mongoose = require("mongoose");
 const Question = require("../models/Question");
 
+const buildSkillQuestions = (skills, difficulty) => {
+  const names = skills.map((skill) => skill.skill || skill).filter(Boolean);
+  if (!names.length) return [];
+  return names.slice(0, 5).map((name) => ({
+    _id: new mongoose.Types.ObjectId(),
+    category: "technical",
+    skill: name,
+    difficulty,
+    question: `Explain your experience with ${name} and a project where you applied it.`,
+    idealAnswer: `Provide a concise overview of how you have used ${name}, the context of the project, key decisions, and measurable outcomes.`,
+    keywords: [name]
+  }));
+};
+
 const fallbackQuestionBank = (difficulty) => [
   {
     _id: new mongoose.Types.ObjectId(),
@@ -40,7 +54,8 @@ const pickQuestions = async ({ skills = [], difficulty = "medium", limit = 5 }) 
     .lean();
 
   if (!questions.length) {
-    return fallbackQuestionBank(difficulty).slice(0, limit);
+    const skillQuestions = buildSkillQuestions(skills, difficulty);
+    return (skillQuestions.length ? skillQuestions : fallbackQuestionBank(difficulty)).slice(0, limit);
   }
 
   return questions.map((question) => ({
@@ -57,7 +72,8 @@ const generateQuestions = async ({ skills, performanceScore }) => {
   try {
     return await pickQuestions({ skills, difficulty, limit: 5 });
   } catch (error) {
-    return fallbackQuestionBank(difficulty);
+    const skillQuestions = buildSkillQuestions(skills, difficulty);
+    return skillQuestions.length ? skillQuestions : fallbackQuestionBank(difficulty);
   }
 };
 
