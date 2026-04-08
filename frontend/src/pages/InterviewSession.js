@@ -14,6 +14,8 @@ const InterviewSession = () => {
   const [error, setError] = useState("");
   const [skills, setSkills] = useState([]);
   const [timerRunning, setTimerRunning] = useState(true);
+  const [aiMode, setAiMode] = useState("classic");
+  const [streamingText, setStreamingText] = useState("");
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -26,14 +28,14 @@ const InterviewSession = () => {
     api.resumeSkills()
       .then((data) => {
         setSkills(data.skills || []);
-        return api.startInterview({ sessionType: "technical", skills: data.skills || [] });
+        return api.startInterview({ sessionType: "technical", skills: data.skills || [], aiMode });
       })
       .then((data) => {
         setSession(data);
         setActiveIndex(0);
       })
       .catch((err) => setError(err.message));
-  }, []);
+  }, [aiMode]);
 
   const activeQuestion = session.questions[activeIndex];
   const progress = session.questions.length
@@ -48,15 +50,35 @@ const InterviewSession = () => {
     if (!activeQuestion) return;
     setLoading(true);
     setError("");
+    setStreamingText("");
     try {
-      const result = await api.submitAnswer({
-        sessionId: session.sessionId,
-        questionId: activeQuestion.questionId,
-        userAnswer: answer,
-        timeSpent: 150 - timeLeft
-      });
-      setAnalysis(result);
-      setTimerRunning(false);
+      if (aiMode === "llm") {
+        await api.submitAnswerStream(
+          {
+            sessionId: session.sessionId,
+            questionId: activeQuestion.questionId,
+            userAnswer: answer,
+            timeSpent: 150 - timeLeft
+          },
+          (delta) => {
+            setStreamingText((prev) => prev + delta);
+          },
+          (done) => {
+            setAnalysis(done);
+            setTimerRunning(false);
+          }
+        );
+      } else {
+        const result = await api.submitAnswer({
+          sessionId: session.sessionId,
+          questionId: activeQuestion.questionId,
+          userAnswer: answer,
+          timeSpent: 150 - timeLeft,
+          aiMode
+        });
+        setAnalysis(result);
+        setTimerRunning(false);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -67,6 +89,7 @@ const InterviewSession = () => {
   const nextQuestion = () => {
     setAnswer("");
     setAnalysis(null);
+    setStreamingText("");
     setActiveIndex((prev) => Math.min(session.questions.length - 1, prev + 1));
     setTimeLeft(150);
     setTimerRunning(true);
@@ -90,6 +113,21 @@ const InterviewSession = () => {
 
       <section className="section">
         <GlassCard>
+          <div className="section-caption">AI Mode</div>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "12px" }}>
+            <button
+              className={aiMode === "classic" ? "primary-button" : "secondary-button"}
+              onClick={() => setAiMode("classic")}
+            >
+              Classic Scoring
+            </button>
+            <button
+              className={aiMode === "llm" ? "primary-button" : "secondary-button"}
+              onClick={() => setAiMode("llm")}
+            >
+              AI Feedback
+            </button>
+          </div>
           <h2>Interview Session #{session.sessionId?.slice(-4) || "123"}</h2>
           <div className="section-caption">Question {activeIndex + 1} of {session.questions.length || 1}</div>
           <div className="progress-bar" style={{ marginTop: "10px" }}>
@@ -135,7 +173,7 @@ const InterviewSession = () => {
             </div>
             <div>
               <div className="section-caption">Feedback</div>
-              <p>{analysis?.feedback || "Submit an answer to receive feedback."}</p>
+              <p>{analysis?.feedback || streamingText || "Submit an answer to receive feedback."}</p>
               <div className="section-caption">Keywords Detected</div>
               {(analysis?.keywordsFound || keywords || []).map((keyword) => (
                 <span className="badge" key={keyword}>{keyword}</span>
