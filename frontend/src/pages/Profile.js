@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import GlassCard from "../components/GlassCard";
 import { api } from "../api";
 
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
 const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState("");
@@ -9,6 +11,7 @@ const Profile = () => {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", theme: "dark", emailNotifications: true });
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [localPreview, setLocalPreview] = useState("");
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -24,7 +27,11 @@ const Profile = () => {
         setAvatarUrl(data.avatarUrl || "");
       })
       .catch((err) => setError(err.message));
-  }, []);
+
+    return () => {
+      if (localPreview) URL.revokeObjectURL(localPreview);
+    };
+  }, [localPreview]);
 
   const handleLogout = () => {
     localStorage.removeItem("interviewai_token");
@@ -47,13 +54,29 @@ const Profile = () => {
 
   const handleAvatarUpload = async (file) => {
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please upload a valid image file.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setError("Image too large. Max size is 2MB.");
+      return;
+    }
+
     setSaving(true);
     setError("");
+    const preview = URL.createObjectURL(file);
+    setLocalPreview(preview);
+
     try {
       const data = await api.uploadAvatar(file);
       setAvatarUrl(data.avatarUrl);
+      if (preview) URL.revokeObjectURL(preview);
+      setLocalPreview("");
     } catch (err) {
       setError(err.message);
+      if (preview) URL.revokeObjectURL(preview);
+      setLocalPreview("");
     } finally {
       setSaving(false);
     }
@@ -65,6 +88,7 @@ const Profile = () => {
     try {
       const data = await api.removeAvatar();
       setAvatarUrl(data.avatarUrl || "");
+      setLocalPreview("");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -91,7 +115,11 @@ const Profile = () => {
           <div className="profile-header">
             <div className="avatar-block">
               <div className="avatar-preview">
-                {avatarUrl ? <img src={avatarUrl} alt="Profile" /> : <span>{profile.name?.[0] || "U"}</span>}
+                {localPreview || avatarUrl ? (
+                  <img src={localPreview || avatarUrl} alt="Profile" />
+                ) : (
+                  <span>{profile.name?.[0] || "U"}</span>
+                )}
               </div>
               <input
                 ref={fileRef}
