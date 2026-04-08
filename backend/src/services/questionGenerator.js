@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Question = require("../models/Question");
+const { generateQuestionsFromSkills } = require("./openaiClient");
 
 const buildSkillQuestions = (skills, difficulty) => {
   const names = skills.map((skill) => skill.skill || skill).filter(Boolean);
@@ -69,10 +70,28 @@ const generateQuestions = async ({ skills, performanceScore }) => {
   if (performanceScore >= 85) difficulty = "hard";
   if (performanceScore <= 60) difficulty = "easy";
 
+  const skillQuestions = buildSkillQuestions(skills, difficulty);
+
+  try {
+    const aiResult = await generateQuestionsFromSkills({ skills });
+    if (aiResult?.questions?.length) {
+      return aiResult.questions.slice(0, 5).map((item) => ({
+        _id: new mongoose.Types.ObjectId(),
+        category: "technical",
+        skill: item.keywords?.[0] || "General",
+        difficulty,
+        question: item.question,
+        idealAnswer: item.idealAnswer,
+        keywords: item.keywords || []
+      }));
+    }
+  } catch (error) {
+    // fall back silently
+  }
+
   try {
     return await pickQuestions({ skills, difficulty, limit: 5 });
   } catch (error) {
-    const skillQuestions = buildSkillQuestions(skills, difficulty);
     return skillQuestions.length ? skillQuestions : fallbackQuestionBank(difficulty);
   }
 };

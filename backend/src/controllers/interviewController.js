@@ -2,6 +2,7 @@ const Session = require("../models/Session");
 const Question = require("../models/Question");
 const { scoreAnswer, scoreLabel } = require("../services/scoring");
 const { generateQuestions } = require("../services/questionGenerator");
+const { generateFeedback } = require("../services/openaiClient");
 
 const startInterview = async (req, res, next) => {
   try {
@@ -49,6 +50,24 @@ const submitAnswer = async (req, res, next) => {
     questionEntry.keywordsFound = keywordsFound;
     questionEntry.timeSpent = timeSpent || 0;
 
+    let aiFeedback = null;
+    try {
+      aiFeedback = await generateFeedback({
+        question: questionEntry.questionText,
+        idealAnswer: questionEntry.idealAnswer,
+        userAnswer,
+        similarityScore
+      });
+      if (aiFeedback?.feedback) {
+        questionEntry.feedback = aiFeedback.feedback;
+      }
+      if (aiFeedback?.keywords?.length) {
+        questionEntry.keywordsFound = aiFeedback.keywords;
+      }
+    } catch (error) {
+      // keep fallback feedback
+    }
+
     session.overallScore = Math.round(
       session.questions.reduce((acc, q) => acc + (q.similarityScore || 0), 0) / session.questions.length
     );
@@ -59,7 +78,8 @@ const submitAnswer = async (req, res, next) => {
       similarityScore,
       confidenceScore,
       feedback: questionEntry.feedback,
-      keywordsFound
+      keywordsFound: questionEntry.keywordsFound,
+      aiFeedback
     });
   } catch (error) {
     return next(error);
