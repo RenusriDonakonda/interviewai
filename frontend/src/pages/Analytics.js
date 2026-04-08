@@ -53,11 +53,31 @@ const Analytics = () => {
   };
 
   const latestSessionId = history[0]?._id || null;
+  const avgScore = history.length
+    ? Math.round(history.reduce((acc, item) => acc + (item.overallScore || 0), 0) / history.length)
+    : 0;
+  const bestScore = history.length
+    ? Math.max(...history.map((item) => item.overallScore || 0))
+    : 0;
 
   return (
     <div>
       <section className="section">
         <h2>Your InterviewAI Progress</h2>
+        <div className="stats-grid" style={{ marginTop: "24px" }}>
+          <GlassCard>
+            <div className="section-caption">Average Score</div>
+            <div className="stat-number">{avgScore}%</div>
+          </GlassCard>
+          <GlassCard>
+            <div className="section-caption">Best Session</div>
+            <div className="stat-number">{bestScore}%</div>
+          </GlassCard>
+          <GlassCard>
+            <div className="section-caption">Total Sessions</div>
+            <div className="stat-number">{history.length}</div>
+          </GlassCard>
+        </div>
       </section>
       <section className="section chart-grid">
         <GlassCard>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import GlassCard from "../components/GlassCard";
 import ScoreMeter from "../components/ScoreMeter";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -12,17 +12,22 @@ const InterviewSession = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState("");
+  const [skills, setSkills] = useState([]);
+  const [timerRunning, setTimerRunning] = useState(true);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+      setTimeLeft((prev) => (prev > 0 && timerRunning ? prev - 1 : prev));
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [timerRunning]);
 
   useEffect(() => {
     api.resumeSkills()
-      .then((data) => api.startInterview({ sessionType: "technical", skills: data.skills || [] }))
+      .then((data) => {
+        setSkills(data.skills || []);
+        return api.startInterview({ sessionType: "technical", skills: data.skills || [] });
+      })
       .then((data) => {
         setSession(data);
         setActiveIndex(0);
@@ -31,6 +36,13 @@ const InterviewSession = () => {
   }, []);
 
   const activeQuestion = session.questions[activeIndex];
+  const progress = session.questions.length
+    ? Math.round(((activeIndex + 1) / session.questions.length) * 100)
+    : 0;
+
+  const keywords = useMemo(() => {
+    return activeQuestion?.keywordsFound || [];
+  }, [activeQuestion]);
 
   const handleSubmit = async () => {
     if (!activeQuestion) return;
@@ -44,6 +56,7 @@ const InterviewSession = () => {
         timeSpent: 150 - timeLeft
       });
       setAnalysis(result);
+      setTimerRunning(false);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -55,6 +68,8 @@ const InterviewSession = () => {
     setAnswer("");
     setAnalysis(null);
     setActiveIndex((prev) => Math.min(session.questions.length - 1, prev + 1));
+    setTimeLeft(150);
+    setTimerRunning(true);
   };
 
   const minutes = String(Math.floor(timeLeft / 60)).padStart(2, "0");
@@ -64,9 +79,23 @@ const InterviewSession = () => {
     <div>
       <section className="section">
         <GlassCard>
+          <div className="section-caption">Skill Focus</div>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            {skills.map((skill) => (
+              <span className="badge" key={skill.skill || skill}>#{skill.skill || skill}</span>
+            ))}
+          </div>
+        </GlassCard>
+      </section>
+
+      <section className="section">
+        <GlassCard>
           <h2>Interview Session #{session.sessionId?.slice(-4) || "123"}</h2>
           <div className="section-caption">Question {activeIndex + 1} of {session.questions.length || 1}</div>
-          <h3>{activeQuestion?.questionText || "Preparing your question set..."}</h3>
+          <div className="progress-bar" style={{ marginTop: "10px" }}>
+            <div className="progress-fill" style={{ width: `${progress}%` }} />
+          </div>
+          <h3 style={{ marginTop: "16px" }}>{activeQuestion?.questionText || "Preparing your question set..."}</h3>
           <div className="input-group">
             <label>Your Answer</label>
             <textarea
@@ -108,7 +137,7 @@ const InterviewSession = () => {
               <div className="section-caption">Feedback</div>
               <p>{analysis?.feedback || "Submit an answer to receive feedback."}</p>
               <div className="section-caption">Keywords Detected</div>
-              {(analysis?.keywordsFound || []).map((keyword) => (
+              {(analysis?.keywordsFound || keywords || []).map((keyword) => (
                 <span className="badge" key={keyword}>{keyword}</span>
               ))}
             </div>
