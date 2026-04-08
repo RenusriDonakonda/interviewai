@@ -3,6 +3,46 @@ import GlassCard from "../components/GlassCard";
 import { api } from "../api";
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const AVATAR_SIZE = 256;
+
+const resizeImage = (file) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = AVATAR_SIZE;
+        canvas.height = AVATAR_SIZE;
+        const ctx = canvas.getContext("2d");
+
+        const minSide = Math.min(img.width, img.height);
+        const sx = (img.width - minSide) / 2;
+        const sy = (img.height - minSide) / 2;
+
+        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error("Failed to process image"));
+              return;
+            }
+            const resizedFile = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+            resolve(resizedFile);
+          },
+          "image/jpeg",
+          0.85
+        );
+      };
+      img.onerror = () => reject(new Error("Invalid image file"));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error("Failed to read image file"));
+    reader.readAsDataURL(file);
+  });
+};
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -58,24 +98,28 @@ const Profile = () => {
       setError("Please upload a valid image file.");
       return;
     }
-    if (file.size > MAX_AVATAR_BYTES) {
-      setError("Image too large. Max size is 2MB.");
-      return;
-    }
 
     setSaving(true);
     setError("");
-    const preview = URL.createObjectURL(file);
-    setLocalPreview(preview);
 
     try {
-      const data = await api.uploadAvatar(file);
+      const resized = await resizeImage(file);
+      if (resized.size > MAX_AVATAR_BYTES) {
+        setError("Image too large even after resize. Please use a smaller image.");
+        setSaving(false);
+        return;
+      }
+
+      const preview = URL.createObjectURL(resized);
+      setLocalPreview(preview);
+
+      const data = await api.uploadAvatar(resized);
       setAvatarUrl(data.avatarUrl);
       if (preview) URL.revokeObjectURL(preview);
       setLocalPreview("");
     } catch (err) {
       setError(err.message);
-      if (preview) URL.revokeObjectURL(preview);
+      if (localPreview) URL.revokeObjectURL(localPreview);
       setLocalPreview("");
     } finally {
       setSaving(false);
@@ -136,6 +180,7 @@ const Profile = () => {
                   Remove Photo
                 </button>
               </div>
+              {saving && <div className="section-caption">Updating photo...</div>}
             </div>
             <div>
               <h2>{profile.name}</h2>
