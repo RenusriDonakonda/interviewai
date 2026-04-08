@@ -9,7 +9,7 @@ const InterviewSession = () => {
   const [timeLeft, setTimeLeft] = useState(150);
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState({ sessionId: null, questions: [] });
-  const [activeQuestion, setActiveQuestion] = useState(null);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState("");
 
@@ -21,13 +21,16 @@ const InterviewSession = () => {
   }, []);
 
   useEffect(() => {
-    api.startInterview({ sessionType: "technical", skills: [] })
+    api.resumeSkills()
+      .then((data) => api.startInterview({ sessionType: "technical", skills: data.skills || [] }))
       .then((data) => {
         setSession(data);
-        setActiveQuestion(data.questions?.[0] || null);
+        setActiveIndex(0);
       })
       .catch((err) => setError(err.message));
   }, []);
+
+  const activeQuestion = session.questions[activeIndex];
 
   const handleSubmit = async () => {
     if (!activeQuestion) return;
@@ -48,6 +51,12 @@ const InterviewSession = () => {
     }
   };
 
+  const nextQuestion = () => {
+    setAnswer("");
+    setAnalysis(null);
+    setActiveIndex((prev) => Math.min(session.questions.length - 1, prev + 1));
+  };
+
   const minutes = String(Math.floor(timeLeft / 60)).padStart(2, "0");
   const seconds = String(timeLeft % 60).padStart(2, "0");
 
@@ -56,8 +65,8 @@ const InterviewSession = () => {
       <section className="section">
         <GlassCard>
           <h2>Interview Session #{session.sessionId?.slice(-4) || "123"}</h2>
-          <div className="section-caption">Question 1 of {session.questions.length || 5}</div>
-          <h3>{activeQuestion?.questionText || "Explain how React manages component state and props."}</h3>
+          <div className="section-caption">Question {activeIndex + 1} of {session.questions.length || 1}</div>
+          <h3>{activeQuestion?.questionText || "Preparing your question set..."}</h3>
           <div className="input-group">
             <label>Your Answer</label>
             <textarea
@@ -71,9 +80,12 @@ const InterviewSession = () => {
           </div>
           <div className="badge">Time Remaining: {minutes}:{seconds}</div>
           {error && <div className="badge" style={{ background: "rgba(239, 68, 68, 0.2)" }}>{error}</div>}
-          <div style={{ marginTop: "16px" }}>
-            <button className="primary-button" onClick={handleSubmit} disabled={loading}>
+          <div style={{ marginTop: "16px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            <button className="primary-button" onClick={handleSubmit} disabled={loading || !activeQuestion}>
               Submit Answer
+            </button>
+            <button className="secondary-button" onClick={nextQuestion} disabled={activeIndex >= session.questions.length - 1}>
+              Next Question
             </button>
           </div>
           {loading && (
@@ -87,16 +99,16 @@ const InterviewSession = () => {
       <section className="section">
         <GlassCard>
           <h3>AI Analysis</h3>
-          <ScoreMeter label="Similarity Score" value={analysis?.similarityScore || 85} />
+          <ScoreMeter label="Similarity Score" value={analysis?.similarityScore || 0} />
           <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", marginTop: "20px" }}>
             <div className="confidence-orb">
-              <div className="confidence-level">{analysis?.confidenceScore ? `${analysis.confidenceScore}%` : "High"}</div>
+              <div className="confidence-level">{analysis?.confidenceScore ? `${analysis.confidenceScore}%` : "-"}</div>
             </div>
             <div>
               <div className="section-caption">Feedback</div>
-              <p>{analysis?.feedback || "Excellent use of technical terms with clear flow. Add a brief example to strengthen clarity."}</p>
+              <p>{analysis?.feedback || "Submit an answer to receive feedback."}</p>
               <div className="section-caption">Keywords Detected</div>
-              {(analysis?.keywordsFound || ["React", "State", "Props"]).map((keyword) => (
+              {(analysis?.keywordsFound || []).map((keyword) => (
                 <span className="badge" key={keyword}>{keyword}</span>
               ))}
             </div>

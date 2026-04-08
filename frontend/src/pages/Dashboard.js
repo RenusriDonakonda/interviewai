@@ -11,6 +11,7 @@ const Dashboard = () => {
   const [profile, setProfile] = useState({ name: "" });
   const [stats, setStats] = useState({ totalInterviews: 0, avgScore: 0, improvementRate: 0 });
   const [recent, setRecent] = useState([]);
+  const [skills, setSkills] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,6 +27,7 @@ const Dashboard = () => {
       const sessions = data.sessions || [];
       setRecent(sessions.slice(0, 3));
     }).catch(() => undefined);
+    api.resumeSkills().then((data) => setSkills(data.skills || [])).catch(() => undefined);
   }, []);
 
   const lineData = {
@@ -34,8 +36,8 @@ const Dashboard = () => {
   };
 
   const radarData = {
-    labels: ["React", "System Design", "Behavioral", "Communication", "Leadership"],
-    values: [80, 68, 74, 88, 70]
+    labels: skills.length ? skills.map((skill) => skill.skill || skill) : ["React", "System Design", "Behavioral"],
+    values: skills.length ? skills.map(() => 70) : [80, 68, 74]
   };
 
   return (
@@ -46,9 +48,7 @@ const Dashboard = () => {
             <Logo withMark />
             <h2>Welcome back, {profile.name || "Candidate"}!</h2>
           </div>
-          <button className="secondary-button" onClick={() => navigate("/profile")}>
-            View Profile
-          </button>
+          <button className="secondary-button" onClick={() => navigate("/profile")}>View Profile</button>
         </div>
         <p className="section-caption">Your InterviewAI Stats</p>
         <div className="stats-grid">
@@ -58,15 +58,15 @@ const Dashboard = () => {
           </GlassCard>
           <GlassCard>
             <div className="section-caption">Interviews</div>
-            <div className="stat-number">{stats.totalInterviews || 12}</div>
+            <div className="stat-number">{stats.totalInterviews || 0}</div>
           </GlassCard>
           <GlassCard>
             <div className="section-caption">Improvement</div>
-            <div className="stat-number">+{stats.improvementRate || 23}%</div>
+            <div className="stat-number">+{stats.improvementRate || 0}%</div>
           </GlassCard>
           <GlassCard>
             <div className="section-caption">Skills Mastered</div>
-            <div className="stat-number">8</div>
+            <div className="stat-number">{skills.length}</div>
           </GlassCard>
         </div>
       </section>
@@ -84,12 +84,8 @@ const Dashboard = () => {
 
       <section className="section">
         <div className="quick-actions">
-          <button className="primary-button" onClick={() => navigate("/interview")}>
-            New Interview
-          </button>
-          <button className="secondary-button" onClick={() => navigate("/resume")}>
-            Upload Resume
-          </button>
+          <button className="primary-button" onClick={() => navigate("/interview")}>New Interview</button>
+          <button className="secondary-button" onClick={() => navigate("/resume")}>Upload Resume</button>
         </div>
       </section>
 
@@ -102,6 +98,7 @@ const Dashboard = () => {
                 {item.sessionType} Interview — {item.overallScore || 0}%
               </li>
             ))}
+            {!recent.length && <li>No interviews yet. Start your first session.</li>}
           </ul>
         </GlassCard>
       </section>

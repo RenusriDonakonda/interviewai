@@ -8,9 +8,11 @@ const Analytics = () => {
   const [history, setHistory] = useState([]);
   const [downloading, setDownloading] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
+  const [skills, setSkills] = useState([]);
 
   useEffect(() => {
     api.history().then((data) => setHistory(data.sessions || [])).catch(() => undefined);
+    api.resumeSkills().then((data) => setSkills(data.skills || [])).catch(() => undefined);
   }, []);
 
   const getReport = async (sessionId, openPreview) => {
@@ -41,13 +43,13 @@ const Analytics = () => {
   };
 
   const lineData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-    values: [70, 72, 78, 80, 84, 88]
+    labels: history.length ? history.map((item) => new Date(item.sessionDate).toLocaleDateString()) : ["Week 1", "Week 2", "Week 3"],
+    values: history.length ? history.map((item) => item.overallScore || 0) : [60, 70, 80]
   };
 
   const radarData = {
-    labels: ["React", "Node", "Behavioral", "System Design", "SQL"],
-    values: [82, 74, 80, 65, 70]
+    labels: skills.length ? skills.map((skill) => skill.skill || skill) : ["React", "Node", "Behavioral"],
+    values: skills.length ? skills.map(() => 70) : [80, 74, 68]
   };
 
   const latestSessionId = history[0]?._id || null;
@@ -105,6 +107,11 @@ const Analytics = () => {
                   </td>
                 </tr>
               ))}
+              {!history.length && (
+                <tr>
+                  <td colSpan="4">No interviews yet. Start your first session.</td>
+                </tr>
+              )}
             </tbody>
           </table>
           <button

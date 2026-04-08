@@ -6,7 +6,6 @@ import Dashboard from "./pages/Dashboard";
 import InterviewSession from "./pages/InterviewSession";
 import ResumeAnalysis from "./pages/ResumeAnalysis";
 import Analytics from "./pages/Analytics";
-import AdminPanel from "./pages/AdminPanel";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import StarfieldCanvas from "./components/StarfieldCanvas";
@@ -29,7 +28,6 @@ const App = () => {
             <Route path="/interview" element={<InterviewSession />} />
             <Route path="/resume" element={<ResumeAnalysis />} />
             <Route path="/analytics" element={<Analytics />} />
-            <Route path="/admin" element={<AdminPanel />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
