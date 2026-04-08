@@ -81,6 +81,27 @@ export const api = {
   register: (payload) => request("/api/auth/register", { method: "POST", body: JSON.stringify(payload) }),
   login: (payload) => request("/api/auth/login", { method: "POST", body: JSON.stringify(payload) }),
   profile: () => request("/api/user/profile"),
+  updateProfile: (payload) => request("/api/user/profile", { method: "PUT", body: JSON.stringify(payload) }),
+  uploadAvatar: async (file) => {
+    const apiBase = getApiBase();
+    if (!apiBase) {
+      throw new Error("API URL is not configured. Set REACT_APP_API_URL in Netlify and redeploy.");
+    }
+    const token = localStorage.getItem("interviewai_token");
+    const form = new FormData();
+    form.append("file", file);
+    const response = await fetch(`${apiBase}/api/user/avatar`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.message || "Upload failed");
+    }
+    return data;
+  },
+  removeAvatar: () => request("/api/user/avatar", { method: "DELETE" }),
   startInterview: (payload) => request("/api/interview/start", { method: "POST", body: JSON.stringify(payload) }),
   submitAnswer: (payload) => request("/api/interview/submit", { method: "POST", body: JSON.stringify(payload) }),
   submitAnswerStream: (payload, onDelta, onDone) =>
@@ -110,11 +131,5 @@ export const api = {
     }
     return data;
   },
-  report: (payload) => request("/api/reports/generate", { method: "POST", body: JSON.stringify(payload) }),
-  adminUsers: () => request("/api/admin/users"),
-  adminQuestions: () => request("/api/admin/questions"),
-  adminAnalytics: () => request("/api/admin/analytics"),
-  adminCreateQuestion: (payload) => request("/api/admin/questions", { method: "POST", body: JSON.stringify(payload) }),
-  adminUpdateQuestion: (id, payload) => request(`/api/admin/questions/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
-  adminDeleteQuestion: (id) => request(`/api/admin/questions/${id}`, { method: "DELETE" })
+  report: (payload) => request("/api/reports/generate", { method: "POST", body: JSON.stringify(payload) })
 };
