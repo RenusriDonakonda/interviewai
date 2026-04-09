@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import GlassCard from "../components/GlassCard";
 import { api } from "../api";
 
+const MAX_SIZE_BYTES = 2 * 1024 * 1024;
+const ALLOWED_TYPES = ["application/pdf", "text/plain"];
+
 const ResumeAnalysis = () => {
   const [skills, setSkills] = useState([]);
   const [questions, setQuestions] = useState([]);
@@ -22,8 +25,24 @@ const ResumeAnalysis = () => {
       .catch(() => undefined);
   }, []);
 
+  const validateFile = (file) => {
+    if (!file) return "";
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return "Unsupported file type. Please upload a PDF or TXT resume.";
+    }
+    if (file.size > MAX_SIZE_BYTES) {
+      return "Resume exceeds 2MB. Please upload a smaller file.";
+    }
+    return "";
+  };
+
   const handleUpload = async (file) => {
     if (!file) return;
+    const validationError = validateFile(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setLoading(true);
     setError("");
     try {

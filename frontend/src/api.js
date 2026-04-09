@@ -77,6 +77,14 @@ const streamRequest = async ({ path, payload, onDelta, onDone }) => {
   }
 };
 
+const friendlyNetworkError = (error) => {
+  const message = error?.message || "Network error";
+  if (message.toLowerCase().includes("failed to fetch")) {
+    return "Network error while contacting InterviewAI API. Check that REACT_APP_API_URL points to your Render backend and that it is awake.";
+  }
+  return message;
+};
+
 export const api = {
   register: (payload) => request("/api/auth/register", { method: "POST", body: JSON.stringify(payload) }),
   login: (payload) => request("/api/auth/login", { method: "POST", body: JSON.stringify(payload) }),
@@ -90,11 +98,16 @@ export const api = {
     const token = localStorage.getItem("interviewai_token");
     const form = new FormData();
     form.append("file", file);
-    const response = await fetch(`${apiBase}/api/user/avatar`, {
-      method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: form
-    });
+    let response;
+    try {
+      response = await fetch(`${apiBase}/api/user/avatar`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form
+      });
+    } catch (error) {
+      throw new Error(friendlyNetworkError(error));
+    }
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data?.message || "Upload failed");
@@ -117,12 +130,22 @@ export const api = {
     const token = localStorage.getItem("interviewai_token");
     const form = new FormData();
     form.append("file", file);
-    const response = await fetch(`${apiBase}/api/resume/upload`, {
-      method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: form
-    });
-    const data = await response.json();
+    let response;
+    try {
+      response = await fetch(`${apiBase}/api/resume/upload`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form
+      });
+    } catch (error) {
+      throw new Error(friendlyNetworkError(error));
+    }
+    let data = {};
+    try {
+      data = await response.json();
+    } catch {
+      // ignore non-json
+    }
     if (!response.ok) {
       if (response.status === 401) {
         localStorage.removeItem("interviewai_token");

@@ -11,7 +11,10 @@ const errorMessages = {
 const errorHandler = (err, req, res, next) => {
   const status = err.status || 500;
   console.error("API error:", err);
-  const message = errorMessages[status] || err.message || errorMessages[500];
+  let message = errorMessages[status] || err.message || errorMessages[500];
+  if (status === 400 && err.message) {
+    message = err.message;
+  }
   res.status(status).json({ message });
 };
 
