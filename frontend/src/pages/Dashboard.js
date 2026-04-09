@@ -48,7 +48,7 @@ const Dashboard = () => {
       <section className="section">
         <div className="dashboard-header">
           <div>
-            <Logo withMark />
+            <Logo withMark size="lg" />
             <h2>Welcome back, {profile.name || "Candidate"}!</h2>
           </div>
           <button className="secondary-button" onClick={() => navigate("/profile")}>View Profile</button>

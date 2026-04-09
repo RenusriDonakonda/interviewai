@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 
-const Logo = ({ withMark = false }) => {
+const Logo = ({ withMark = false, size = "md" }) => {
   const [imgFailed, setImgFailed] = useState(false);
   const showImage = withMark && !imgFailed;
+  const sizeClass = size === "lg" ? "logo-lg" : "";
 
   return (
-    <div className="logo" aria-label="InterviewAI">
+    <div className={`logo ${sizeClass}`.trim()} aria-label="InterviewAI">
       {showImage && (
         <img
           src="/interviewai-logo.png"

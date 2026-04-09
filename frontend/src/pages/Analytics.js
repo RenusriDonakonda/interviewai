@@ -9,6 +9,7 @@ const Analytics = () => {
   const [downloading, setDownloading] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [skills, setSkills] = useState([]);
+  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     api.history().then((data) => setHistory(data.sessions || [])).catch(() => undefined);
@@ -40,6 +41,33 @@ const Analytics = () => {
       window.URL.revokeObjectURL(previewUrl);
     }
     setPreviewUrl("");
+  };
+
+  const buildPreview = (session) => {
+    const questions = session.questions || [];
+    const answered = questions.filter((q) => q.userAnswer).length;
+    const strengths = session.strengths?.length
+      ? session.strengths
+      : [...questions]
+        .filter((q) => typeof q.similarityScore === "number")
+        .sort((a, b) => b.similarityScore - a.similarityScore)
+        .slice(0, 3)
+        .map((q) => q.questionText);
+
+    const improvements = session.improvements?.length
+      ? session.improvements
+      : [...questions]
+        .filter((q) => typeof q.similarityScore === "number")
+        .sort((a, b) => a.similarityScore - b.similarityScore)
+        .slice(0, 3)
+        .map((q) => q.questionText);
+
+    return {
+      questions,
+      answered,
+      strengths: strengths.length ? strengths : ["Keep practicing to unlock detailed insights."],
+      improvements: improvements.length ? improvements : ["Complete more answers to see tailored improvements."]
+    };
   };
 
   const lineData = {
@@ -102,31 +130,86 @@ const Analytics = () => {
               </tr>
             </thead>
             <tbody>
-              {history.map((row) => (
-                <tr key={row._id}>
-                  <td>{new Date(row.sessionDate).toLocaleDateString()}</td>
-                  <td>{row.sessionType}</td>
-                  <td>{row.overallScore || 0}%</td>
-                  <td>
-                    <div className="report-actions">
-                      <button
-                        className="secondary-button"
-                        onClick={() => getReport(row._id, true)}
-                        disabled={downloading === row._id}
-                      >
-                        {downloading === row._id ? "Preparing..." : "Preview"}
-                      </button>
-                      <button
-                        className="secondary-button"
-                        onClick={() => getReport(row._id, false)}
-                        disabled={downloading === row._id}
-                      >
-                        Download PDF
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {history.map((row) => {
+                const preview = buildPreview(row);
+                const isExpanded = expandedId === row._id;
+                return (
+                  <React.Fragment key={row._id}>
+                    <tr>
+                      <td>{new Date(row.sessionDate).toLocaleDateString()}</td>
+                      <td>{row.sessionType}</td>
+                      <td>{row.overallScore || 0}%</td>
+                      <td>
+                        <div className="report-actions">
+                          <button
+                            className="secondary-button"
+                            onClick={() => setExpandedId(isExpanded ? null : row._id)}
+                          >
+                            {isExpanded ? "Hide Preview" : "Preview"}
+                          </button>
+                          <button
+                            className="secondary-button"
+                            onClick={() => getReport(row._id, true)}
+                            disabled={downloading === row._id}
+                          >
+                            {downloading === row._id ? "Preparing..." : "PDF Preview"}
+                          </button>
+                          <button
+                            className="secondary-button"
+                            onClick={() => getReport(row._id, false)}
+                            disabled={downloading === row._id}
+                          >
+                            Download PDF
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr className="table-preview-row">
+                        <td colSpan="4">
+                          <div className="report-preview-card">
+                            <div className="report-preview-grid">
+                              <div>
+                                <div className="section-caption">Overall Score</div>
+                                <div className="report-score">{row.overallScore || 0}%</div>
+                                <div className="section-caption">Answered {preview.answered}/{preview.questions.length}</div>
+                              </div>
+                              <div>
+                                <div className="section-caption">Strengths</div>
+                                <ul className="report-list">
+                                  {preview.strengths.map((item, idx) => (
+                                    <li key={`${row._id}-strength-${idx}`}>{item}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                              <div>
+                                <div className="section-caption">Areas for Improvement</div>
+                                <ul className="report-list">
+                                  {preview.improvements.map((item, idx) => (
+                                    <li key={`${row._id}-improve-${idx}`}>{item}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                            <div className="report-breakdown">
+                              <div className="section-caption">Question Breakdown</div>
+                              {preview.questions.slice(0, 6).map((q, idx) => (
+                                <div key={`${row._id}-q-${idx}`} className="report-breakdown-row">
+                                  <div>{q.questionText || "Question"}</div>
+                                  <div className="report-score-mini">{q.similarityScore ?? 0}%</div>
+                                </div>
+                              ))}
+                              {!preview.questions.length && (
+                                <div className="section-caption">No questions answered yet.</div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
               {!history.length && (
                 <tr>
                   <td colSpan="4">No interviews yet. Start your first session.</td>
