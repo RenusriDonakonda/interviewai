@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import GlassCard from "../components/GlassCard";
 import LineChart from "../components/charts/LineChart";
@@ -25,20 +25,23 @@ const Dashboard = () => {
     }).catch(() => undefined);
     api.history().then((data) => {
       const sessions = data.sessions || [];
-      setRecent(sessions.slice(0, 3));
+      setRecent(sessions.slice(0, 5));
     }).catch(() => undefined);
     api.resumeSkills().then((data) => setSkills(data.skills || [])).catch(() => undefined);
   }, []);
-
-  const lineData = {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-    values: [65, 72, 70, 76, 80, 85]
-  };
 
   const radarData = {
     labels: skills.length ? skills.map((skill) => skill.skill || skill) : ["React", "System Design", "Behavioral"],
     values: skills.length ? skills.map(() => 70) : [80, 68, 74]
   };
+
+  const sparkline = useMemo(() => {
+    if (!recent.length) return { labels: ["A", "B"], values: [0, 0] };
+    return {
+      labels: recent.map((item) => new Date(item.sessionDate).toLocaleDateString()),
+      values: recent.map((item) => item.overallScore || 0)
+    };
+  }, [recent]);
 
   return (
     <div>
@@ -54,7 +57,7 @@ const Dashboard = () => {
         <div className="stats-grid">
           <GlassCard>
             <div className="section-caption">Overall Score</div>
-            <ProgressRing value={stats.avgScore || 85} />
+            <ProgressRing value={stats.avgScore || 0} />
           </GlassCard>
           <GlassCard>
             <div className="section-caption">Interviews</div>
@@ -74,7 +77,7 @@ const Dashboard = () => {
       <section className="section chart-grid">
         <GlassCard>
           <h3>Performance Trends</h3>
-          <LineChart data={lineData} />
+          <LineChart data={sparkline} />
         </GlassCard>
         <GlassCard>
           <h3>Skill Strength Meter</h3>
@@ -91,15 +94,22 @@ const Dashboard = () => {
 
       <section className="section">
         <GlassCard>
-          <h3>Recent Interviews</h3>
-          <ul>
+          <div className="dashboard-recent-header">
+            <h3>Recent Interviews</h3>
+            <button className="secondary-button" onClick={() => navigate("/analytics")}>View All</button>
+          </div>
+          <div className="recent-list">
             {recent.map((item) => (
-              <li key={item._id}>
-                {item.sessionType} Interview — {item.overallScore || 0}%
-              </li>
+              <div key={item._id} className="recent-item">
+                <div>
+                  <div className="section-caption">{new Date(item.sessionDate).toLocaleDateString()}</div>
+                  <div>{item.sessionType} Interview</div>
+                </div>
+                <div className="recent-score">{item.overallScore || 0}%</div>
+              </div>
             ))}
-            {!recent.length && <li>No interviews yet. Start your first session.</li>}
-          </ul>
+            {!recent.length && <div className="section-caption">No interviews yet. Start your first session.</div>}
+          </div>
         </GlassCard>
       </section>
     </div>

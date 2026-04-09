@@ -16,6 +16,8 @@ const userSchema = new mongoose.Schema(
     lastActive: { type: Date, default: Date.now },
     subscription: { type: String, enum: ["free", "pro", "enterprise"], default: "free" },
     resumeUrl: String,
+    resumeFilename: String,
+    avatarUrl: String,
     extractedSkills: [extractedSkillSchema],
     totalInterviews: { type: Number, default: 0 },
     averageScore: { type: Number, default: 0 },

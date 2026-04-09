@@ -9,12 +9,16 @@ const ResumeAnalysis = () => {
   const [experience, setExperience] = useState("mid");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [filename, setFilename] = useState("");
   const fileRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     api.resumeSkills()
-      .then((data) => setSkills(data.skills || []))
+      .then((data) => {
+        setSkills(data.skills || []);
+        setFilename(data.filename || "");
+      })
       .catch(() => undefined);
   }, []);
 
@@ -23,10 +27,12 @@ const ResumeAnalysis = () => {
     setLoading(true);
     setError("");
     try {
+      setFilename(file.name);
       const data = await api.resumeUpload(file);
       setSkills(data.skills || []);
       setExperience(data.experience || "mid");
-      const questionData = await api.startInterview({ skills: data.skills || [], sessionType: "technical" });
+      setFilename(data.filename || file.name);
+      const questionData = await api.startInterview({ skills: data.skills || [], sessionType: "mixed" });
       setQuestions(questionData.questions || []);
     } catch (err) {
       setError(err.message);
@@ -64,6 +70,7 @@ const ResumeAnalysis = () => {
             <button className="secondary-button" onClick={() => fileRef.current?.click()}>
               Browse Files
             </button>
+            {filename && <div className="section-caption">Uploaded: {filename}</div>}
             {loading && <div className="section-caption">Uploading...</div>}
             {error && <div className="badge" style={{ background: "rgba(239, 68, 68, 0.2)" }}>{error}</div>}
           </div>
@@ -87,10 +94,14 @@ const ResumeAnalysis = () => {
           <h3>InterviewAI Generated Questions</h3>
           <ol>
             {questions.map((item) => (
-              <li key={item.questionId || item._id}>{item.questionText || item.question}</li>
+              <li key={item.questionId || item._id}>
+                <strong>{item.questionText || item.question}</strong>
+                {item.category && <div className="section-caption">{item.category} • {item.skill}</div>}
+              </li>
             ))}
           </ol>
-          <button className="primary-button" onClick={() => navigate("/interview")}>
+          <button className="primary-button" onClick={() => navigate("/interview")}
+            disabled={!questions.length}>
             Start AI Interview with These Questions
           </button>
         </GlassCard>

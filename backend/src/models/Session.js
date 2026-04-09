@@ -9,7 +9,9 @@ const questionSchema = new mongoose.Schema({
   confidenceScore: Number,
   feedback: String,
   keywordsFound: [String],
-  timeSpent: Number
+  timeSpent: Number,
+  skill: String,
+  category: String
 });
 
 const sessionSchema = new mongoose.Schema(

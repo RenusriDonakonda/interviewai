@@ -19,7 +19,9 @@ const startInterview = async (req, res, next) => {
         questionText: q.question,
         idealAnswer: q.idealAnswer,
         keywordsFound: [],
-        timeSpent: 0
+        timeSpent: 0,
+        skill: q.skill,
+        category: q.category
       }))
     });
 

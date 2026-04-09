@@ -4,6 +4,7 @@ import { api } from "../api";
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const AVATAR_SIZE = 256;
+const AVATAR_FALLBACK_KEY = "interviewai_avatar_fallback";
 
 const resizeImage = (file) => {
   return new Promise((resolve, reject) => {
@@ -44,6 +45,15 @@ const resizeImage = (file) => {
   });
 };
 
+const fileToDataUrl = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Failed to read image file"));
+    reader.readAsDataURL(file);
+  });
+};
+
 const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState("");
@@ -64,14 +74,11 @@ const Profile = () => {
           theme: data.theme || "dark",
           emailNotifications: data.emailNotifications ?? true
         });
-        setAvatarUrl(data.avatarUrl || "");
+        const fallback = localStorage.getItem(AVATAR_FALLBACK_KEY) || "";
+        setAvatarUrl(data.avatarUrl || fallback);
       })
       .catch((err) => setError(err.message));
-
-    return () => {
-      if (localPreview) URL.revokeObjectURL(localPreview);
-    };
-  }, [localPreview]);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("interviewai_token");
@@ -110,24 +117,24 @@ const Profile = () => {
         return;
       }
 
-      const preview = URL.createObjectURL(resized);
-      setLocalPreview(preview);
+      const dataUrl = await fileToDataUrl(resized);
+      setLocalPreview(dataUrl);
+      setAvatarUrl(dataUrl);
+      localStorage.setItem(AVATAR_FALLBACK_KEY, dataUrl);
 
       const data = await api.uploadAvatar(resized);
       if (data?.avatarUrl) {
         setAvatarUrl(data.avatarUrl);
         setProfile((prev) => ({ ...prev, avatarUrl: data.avatarUrl }));
-        if (preview) URL.revokeObjectURL(preview);
+        localStorage.setItem(AVATAR_FALLBACK_KEY, data.avatarUrl);
         setLocalPreview("");
       } else {
         const refreshed = await api.profile();
         if (refreshed?.avatarUrl) {
           setAvatarUrl(refreshed.avatarUrl);
           setProfile(refreshed);
-          if (preview) URL.revokeObjectURL(preview);
+          localStorage.setItem(AVATAR_FALLBACK_KEY, refreshed.avatarUrl);
           setLocalPreview("");
-        } else {
-          setError("Upload succeeded but no image returned. Please try again.");
         }
       }
     } catch (err) {
@@ -144,6 +151,7 @@ const Profile = () => {
       const data = await api.removeAvatar();
       setAvatarUrl(data.avatarUrl || "");
       setLocalPreview("");
+      localStorage.removeItem(AVATAR_FALLBACK_KEY);
       setProfile((prev) => ({ ...prev, avatarUrl: "" }));
     } catch (err) {
       setError(err.message);

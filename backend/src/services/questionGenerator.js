@@ -6,7 +6,7 @@ const { makeKey, getCache, setCache } = require("./aiCache");
 const buildSkillQuestions = (skills, difficulty) => {
   const names = skills.map((skill) => skill.skill || skill).filter(Boolean);
   if (!names.length) return [];
-  return names.slice(0, 5).map((name) => ({
+  return names.slice(0, 4).map((name) => ({
     _id: new mongoose.Types.ObjectId(),
     category: "technical",
     skill: name,
@@ -16,6 +16,27 @@ const buildSkillQuestions = (skills, difficulty) => {
     keywords: [name]
   }));
 };
+
+const buildBehavioralQuestions = () => [
+  {
+    _id: new mongoose.Types.ObjectId(),
+    category: "behavioral",
+    skill: "Communication",
+    difficulty: "medium",
+    question: "Describe a time you explained a complex topic to a non-technical stakeholder.",
+    idealAnswer: "Use the STAR method to explain the situation, approach, and outcome with clarity and empathy.",
+    keywords: ["STAR", "communication", "stakeholder"]
+  },
+  {
+    _id: new mongoose.Types.ObjectId(),
+    category: "behavioral",
+    skill: "Problem Solving",
+    difficulty: "medium",
+    question: "Tell me about a time you solved an unexpected problem under a tight deadline.",
+    idealAnswer: "Highlight how you assessed the issue, prioritized actions, and delivered results.",
+    keywords: ["problem solving", "prioritize", "deadline"]
+  }
+];
 
 const fallbackQuestionBank = (difficulty) => [
   {
@@ -36,15 +57,7 @@ const fallbackQuestionBank = (difficulty) => [
     idealAnswer: "Node.js uses an event loop and non-blocking I/O. Async tasks are handled via callbacks, promises, or async/await.",
     keywords: ["event loop", "non-blocking", "promises"]
   },
-  {
-    _id: new mongoose.Types.ObjectId(),
-    category: "behavioral",
-    skill: "Communication",
-    difficulty,
-    question: "Describe a time you handled a difficult stakeholder conversation.",
-    idealAnswer: "Use the STAR method to explain the situation, your actions to clarify expectations, and the positive outcome.",
-    keywords: ["STAR", "communication", "stakeholder"]
-  }
+  ...buildBehavioralQuestions()
 ];
 
 const pickQuestions = async ({ skills = [], difficulty = "medium", limit = 5 }) => {
@@ -57,7 +70,8 @@ const pickQuestions = async ({ skills = [], difficulty = "medium", limit = 5 }) 
 
   if (!questions.length) {
     const skillQuestions = buildSkillQuestions(skills, difficulty);
-    return (skillQuestions.length ? skillQuestions : fallbackQuestionBank(difficulty)).slice(0, limit);
+    const behavioral = buildBehavioralQuestions();
+    return [...skillQuestions, ...behavioral].slice(0, limit);
   }
 
   return questions.map((question) => ({
@@ -72,6 +86,7 @@ const generateQuestions = async ({ skills, performanceScore, aiMode = "classic" 
   if (performanceScore <= 60) difficulty = "easy";
 
   const skillQuestions = buildSkillQuestions(skills, difficulty);
+  const behavioral = buildBehavioralQuestions();
 
   if (aiMode === "llm") {
     const cacheKey = makeKey(["questions", JSON.stringify(skills), difficulty]);
@@ -102,7 +117,7 @@ const generateQuestions = async ({ skills, performanceScore, aiMode = "classic" 
     const picked = await pickQuestions({ skills, difficulty, limit: 5 });
     return picked;
   } catch (error) {
-    return skillQuestions.length ? skillQuestions : fallbackQuestionBank(difficulty);
+    return [...skillQuestions, ...behavioral].slice(0, 5);
   }
 };
 

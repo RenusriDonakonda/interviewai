@@ -12,10 +12,11 @@ const uploadResume = async (req, res, next) => {
     const experience = detectExperienceLevel(text);
 
     await User.findByIdAndUpdate(req.user.id, {
-      extractedSkills: skills
+      extractedSkills: skills,
+      resumeFilename: filename
     });
 
-    return res.status(200).json({ skills, experience });
+    return res.status(200).json({ skills, experience, filename });
   } catch (error) {
     return next(error);
   }
@@ -23,8 +24,8 @@ const uploadResume = async (req, res, next) => {
 
 const getSkills = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select("extractedSkills");
-    return res.status(200).json({ skills: user?.extractedSkills || [] });
+    const user = await User.findById(req.user.id).select("extractedSkills resumeFilename");
+    return res.status(200).json({ skills: user?.extractedSkills || [], filename: user?.resumeFilename || "" });
   } catch (error) {
     return next(error);
   }
