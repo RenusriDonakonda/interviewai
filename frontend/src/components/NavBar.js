@@ -6,8 +6,8 @@ const NavBar = () => {
   return (
     <header className="navbar">
       <div className="navbar-inner">
-        <Link to="/">
-          <Logo />
+        <Link to="/" className="navbar-brand">
+          <Logo withMark />
         </Link>
         <nav className="nav-links">
           <NavLink to="/dashboard">Dashboard</NavLink>

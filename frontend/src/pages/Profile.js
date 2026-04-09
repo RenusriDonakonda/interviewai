@@ -114,13 +114,16 @@ const Profile = () => {
       setLocalPreview(preview);
 
       const data = await api.uploadAvatar(resized);
-      setAvatarUrl(data.avatarUrl);
-      if (preview) URL.revokeObjectURL(preview);
-      setLocalPreview("");
+      if (data?.avatarUrl) {
+        setAvatarUrl(data.avatarUrl);
+        setProfile((prev) => ({ ...prev, avatarUrl: data.avatarUrl }));
+        if (preview) URL.revokeObjectURL(preview);
+        setLocalPreview("");
+      } else {
+        setError("Upload succeeded but no image returned. Please try again.");
+      }
     } catch (err) {
       setError(err.message);
-      if (localPreview) URL.revokeObjectURL(localPreview);
-      setLocalPreview("");
     } finally {
       setSaving(false);
     }
@@ -133,6 +136,7 @@ const Profile = () => {
       const data = await api.removeAvatar();
       setAvatarUrl(data.avatarUrl || "");
       setLocalPreview("");
+      setProfile((prev) => ({ ...prev, avatarUrl: "" }));
     } catch (err) {
       setError(err.message);
     } finally {

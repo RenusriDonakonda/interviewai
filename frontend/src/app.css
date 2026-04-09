@@ -650,3 +650,47 @@ textarea {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+.profile-header {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.avatar-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.avatar-preview {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logo-img {
+  width: clamp(40px, 4.5vw, 60px);
+  height: clamp(40px, 4.5vw, 60px);
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
