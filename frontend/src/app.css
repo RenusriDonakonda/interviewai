@@ -359,13 +359,15 @@ textarea {
 
 .cursor-glow {
   position: fixed;
-  width: 240px;
-  height: 240px;
+  width: 220px;
+  height: 220px;
   pointer-events: none;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.35), rgba(59, 130, 246, 0));
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.28), rgba(59, 130, 246, 0));
   transform: translate(-50%, -50%);
-  mix-blend-mode: screen;
-  z-index: 1;
+  filter: blur(2px);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 3;
 }
 
 .starfield {
@@ -625,13 +627,15 @@ textarea {
 
 .cursor-glow {
   position: fixed;
-  width: 240px;
-  height: 240px;
+  width: 220px;
+  height: 220px;
   pointer-events: none;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.35), rgba(59, 130, 246, 0));
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.28), rgba(59, 130, 246, 0));
   transform: translate(-50%, -50%);
-  mix-blend-mode: screen;
-  z-index: 1;
+  filter: blur(2px);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 3;
 }
 
 .starfield {
@@ -753,3 +757,4 @@ textarea {
     padding-top: 140px;
   }
 }
+
