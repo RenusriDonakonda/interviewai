@@ -6,6 +6,12 @@ const getApiBase = () => {
   );
 };
 
+const redirectToAuth = () => {
+  if (typeof window !== "undefined" && window.location.pathname !== "/auth") {
+    window.location.href = "/auth";
+  }
+};
+
 const request = async (path, options = {}) => {
   const apiBase = getApiBase();
   if (!apiBase) {
@@ -24,6 +30,7 @@ const request = async (path, options = {}) => {
   if (!response.ok) {
     if (response.status === 401) {
       localStorage.removeItem("interviewai_token");
+      redirectToAuth();
     }
     const message = data?.message || "Request failed";
     throw new Error(message);
@@ -47,6 +54,10 @@ const streamRequest = async ({ path, payload, onDelta, onDone }) => {
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem("interviewai_token");
+      redirectToAuth();
+    }
     const text = await response.text();
     throw new Error(text || "Stream failed");
   }
@@ -108,6 +119,10 @@ export const api = {
     } catch (error) {
       throw new Error(friendlyNetworkError(error));
     }
+    if (response.status === 401) {
+      localStorage.removeItem("interviewai_token");
+      redirectToAuth();
+    }
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data?.message || "Upload failed");
@@ -140,6 +155,10 @@ export const api = {
     } catch (error) {
       throw new Error(friendlyNetworkError(error));
     }
+    if (response.status === 401) {
+      localStorage.removeItem("interviewai_token");
+      redirectToAuth();
+    }
     let data = {};
     try {
       data = await response.json();
@@ -147,9 +166,6 @@ export const api = {
       // ignore non-json
     }
     if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem("interviewai_token");
-      }
       throw new Error(data?.message || "Upload failed");
     }
     return data;
