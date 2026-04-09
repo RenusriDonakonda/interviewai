@@ -120,7 +120,15 @@ const Profile = () => {
         if (preview) URL.revokeObjectURL(preview);
         setLocalPreview("");
       } else {
-        setError("Upload succeeded but no image returned. Please try again.");
+        const refreshed = await api.profile();
+        if (refreshed?.avatarUrl) {
+          setAvatarUrl(refreshed.avatarUrl);
+          setProfile(refreshed);
+          if (preview) URL.revokeObjectURL(preview);
+          setLocalPreview("");
+        } else {
+          setError("Upload succeeded but no image returned. Please try again.");
+        }
       }
     } catch (err) {
       setError(err.message);
