@@ -13,6 +13,7 @@ const ResumeAnalysis = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [filename, setFilename] = useState("");
+  const [profileName, setProfileName] = useState("your");
   const fileRef = useRef(null);
   const navigate = useNavigate();
 
@@ -22,6 +23,9 @@ const ResumeAnalysis = () => {
         setSkills(data.skills || []);
         setFilename(data.filename || "");
       })
+      .catch(() => undefined);
+    api.profile()
+      .then((data) => setProfileName(data.name || "your"))
       .catch(() => undefined);
   }, []);
 
@@ -98,12 +102,13 @@ const ResumeAnalysis = () => {
 
       <section className="section">
         <GlassCard>
-          <h3>Extracted Skills</h3>
+          <h3>Extracted Skills for {profileName}</h3>
           <div className="section-caption">Experience Level: {experience}</div>
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
             {skills.map((skill) => (
               <span className="badge" key={skill.skill || skill}>#{skill.skill || skill}</span>
             ))}
+            {!skills.length && <div className="section-caption">Upload a resume to extract skills.</div>}
           </div>
         </GlassCard>
       </section>
