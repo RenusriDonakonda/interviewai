@@ -269,7 +269,9 @@ const InterviewSession = () => {
         await videoRef.current.play();
       }
 
-      setCameraOn(true);\n\n      if (window.FaceDetector) {
+      setCameraOn(true);
+
+      if (window.FaceDetector) {
         detectorRef.current = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
       } else {
         setFaceStatus("Loading on-device face model...");
@@ -277,7 +279,6 @@ const InterviewSession = () => {
         setVisionSupported(true);
       }
 
-      setCameraOn(true);
       setFaceStatus("Scanning...");
       lastDetectedRef.current = Date.now();
 
@@ -462,12 +463,3 @@ const InterviewSession = () => {
 };
 
 export default InterviewSession;
-
-
-
-
-
-
-
-
-
