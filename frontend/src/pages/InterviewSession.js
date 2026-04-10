@@ -416,7 +416,10 @@ const InterviewSession = () => {
             </div>
             <div className="face-panel">
               <div className="section-caption">Status</div>
-              <div className="face-status">{faceStatus}</div>\n              {!visionSupported && (\n                <div className="section-caption">Using on-device ML fallback for face detection.</div>\n              )}
+              <div className="face-status">{faceStatus}</div>
+              {!visionSupported && (
+                <div className="section-caption">Using on-device ML fallback for face detection.</div>
+              )}
               <div className="section-caption" style={{ marginTop: "12px" }}>Confidence Meter</div>
               <div className="face-meter">
                 <div className="face-meter-fill" style={{ width: `${faceConfidence}%` }} />
@@ -465,5 +468,8 @@ const InterviewSession = () => {
 };
 
 export default InterviewSession;
+
+
+
 
 
