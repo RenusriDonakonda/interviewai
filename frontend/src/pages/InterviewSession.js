@@ -36,7 +36,6 @@ const InterviewSession = () => {
     recognition.maxAlternatives = 1;
 
     recognition.onresult = (event) => {
-      let interim = "";
       let finalText = "";
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
         const result = event.results[i];
@@ -265,3 +264,4 @@ const InterviewSession = () => {
 };
 
 export default InterviewSession;
+
