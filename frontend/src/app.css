@@ -359,15 +359,25 @@ textarea {
 
 .cursor-glow {
   position: fixed;
-  width: 220px;
-  height: 220px;
+  width: 180px;
+  height: 180px;
   pointer-events: none;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.28), rgba(59, 130, 246, 0));
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(168, 85, 247, 0.35), rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0));
   transform: translate(-50%, -50%);
-  filter: blur(2px);
+  filter: blur(4px);
   opacity: 0;
   transition: opacity 0.15s ease;
   z-index: 3;
+}
+
+.cursor-glow::after {
+  content: "";
+  position: absolute;
+  inset: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.5), rgba(168, 85, 247, 0.2), rgba(59, 130, 246, 0));
+  filter: blur(2px);
 }
 
 .starfield {
@@ -627,15 +637,25 @@ textarea {
 
 .cursor-glow {
   position: fixed;
-  width: 220px;
-  height: 220px;
+  width: 180px;
+  height: 180px;
   pointer-events: none;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.28), rgba(59, 130, 246, 0));
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(168, 85, 247, 0.35), rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0));
   transform: translate(-50%, -50%);
-  filter: blur(2px);
+  filter: blur(4px);
   opacity: 0;
   transition: opacity 0.15s ease;
   z-index: 3;
+}
+
+.cursor-glow::after {
+  content: "";
+  position: absolute;
+  inset: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.5), rgba(168, 85, 247, 0.2), rgba(59, 130, 246, 0));
+  filter: blur(2px);
 }
 
 .starfield {
@@ -770,3 +790,4 @@ textarea {
 .voice-controls .section-caption {
   color: var(--text-muted);
 }
+
