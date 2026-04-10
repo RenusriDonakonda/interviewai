@@ -4,6 +4,68 @@ import ScoreMeter from "../components/ScoreMeter";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { api } from "../api";
 
+const loadScript = (src) => {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) {
+      if (existing.getAttribute("data-loaded") === "true") {
+        resolve();
+        return;
+      }
+      existing.addEventListener("load", () => resolve());
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.onload = () => {
+      script.setAttribute("data-loaded", "true");
+      resolve();
+    };
+    script.onerror = () => reject(new Error("Failed to load face model"));
+    document.head.appendChild(script);
+  });
+};
+
+const loadTfFaceDetector = async () => {
+  await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.20.0/dist/tf-core.min.js");
+  await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.20.0/dist/tf-backend-webgl.min.js");
+  await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection@1.0.3/dist/face-detection.min.js");
+
+  const tf = window.tf;
+  const faceDetection = window.faceDetection;
+  if (!tf || !faceDetection) throw new Error("Face detection library unavailable");
+
+  if (tf.getBackend() !== "webgl") {
+    await tf.setBackend("webgl");
+    await tf.ready();
+  }
+
+  const detector = await faceDetection.createDetector(
+    faceDetection.SupportedModels.MediaPipeFaceDetector,
+    {
+      runtime: "tfjs",
+      maxFaces: 1,
+      modelType: "short"
+    }
+  );
+
+  return {
+    detect: async (videoEl) => {
+      const faces = await detector.estimateFaces(videoEl, { flipHorizontal: false });
+      return (faces || []).map((face) => ({
+        boundingBox: {
+          x: face.box.xMin,
+          y: face.box.yMin,
+          width: face.box.width,
+          height: face.box.height
+        }
+      }));
+    },
+    dispose: () => detector.dispose()
+  };
+};
+
 const InterviewSession = () => {
   const [answer, setAnswer] = useState("");
   const [timeLeft, setTimeLeft] = useState(150);
@@ -28,6 +90,7 @@ const InterviewSession = () => {
   const streamRef = useRef(null);
   const detectorRef = useRef(null);
   const detectTimerRef = useRef(null);
+  const lastDetectedRef = useRef(0);
 
   useEffect(() => {
     const canUse = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -96,6 +159,9 @@ const InterviewSession = () => {
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (detectorRef.current?.dispose) {
+        detectorRef.current.dispose();
       }
     };
   }, []);
@@ -182,34 +248,52 @@ const InterviewSession = () => {
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
+    if (detectorRef.current?.dispose) {
+      detectorRef.current.dispose();
+      detectorRef.current = null;
+    }
     setCameraOn(false);
     setFaceStatus("Camera off");
     setFaceConfidence(0);
   };
 
   const startCamera = async () => {
-    if (!visionSupported) return;
+    setFaceStatus("Starting camera...");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }
+      });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-      detectorRef.current = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+
+      if (window.FaceDetector) {
+        detectorRef.current = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+      } else {
+        setFaceStatus("Loading on-device face model...");
+        detectorRef.current = await loadTfFaceDetector();
+        setVisionSupported(true);
+      }
+
       setCameraOn(true);
       setFaceStatus("Scanning...");
+      lastDetectedRef.current = Date.now();
 
       if (detectTimerRef.current) clearInterval(detectTimerRef.current);
       detectTimerRef.current = setInterval(async () => {
         if (!videoRef.current || !detectorRef.current) return;
+        if (videoRef.current.readyState < 2) return;
         try {
           const faces = await detectorRef.current.detect(videoRef.current);
           if (!faces.length) {
-            setFaceStatus("No face detected");
+            const idle = Date.now() - lastDetectedRef.current;
+            setFaceStatus(idle > 2000 ? "Move closer / improve lighting" : "Scanning...");
             setFaceConfidence((prev) => Math.max(0, prev - 5));
             return;
           }
+          lastDetectedRef.current = Date.now();
           const face = faces[0];
           const box = face.boundingBox;
           const videoWidth = videoRef.current.videoWidth || 1;
@@ -227,7 +311,7 @@ const InterviewSession = () => {
         } catch {
           setFaceStatus("Scanning...");
         }
-      }, 900);
+      }, 800);
     } catch (err) {
       setFaceStatus("Camera permission denied");
       setCameraOn(false);
@@ -332,7 +416,7 @@ const InterviewSession = () => {
             </div>
             <div className="face-panel">
               <div className="section-caption">Status</div>
-              <div className="face-status">{faceStatus}</div>
+              <div className="face-status">{faceStatus}</div>\n              {!visionSupported && (\n                <div className="section-caption">Using on-device ML fallback for face detection.</div>\n              )}
               <div className="section-caption" style={{ marginTop: "12px" }}>Confidence Meter</div>
               <div className="face-meter">
                 <div className="face-meter-fill" style={{ width: `${faceConfidence}%` }} />
@@ -343,9 +427,8 @@ const InterviewSession = () => {
                   <button
                     className="secondary-button"
                     onClick={startCamera}
-                    disabled={!visionSupported}
                   >
-                    {visionSupported ? "Enable Camera" : "Face detection not supported"}
+                    Enable Camera
                   </button>
                 ) : (
                   <button className="secondary-button" onClick={stopCamera}>
@@ -382,3 +465,4 @@ const InterviewSession = () => {
 };
 
 export default InterviewSession;
+
