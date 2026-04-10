@@ -791,3 +791,23 @@ textarea {
   color: var(--text-muted);
 }
 
+.report-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.report-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: var(--starlight);
+  font-size: 0.8rem;
+}
+
+.report-kpi {
+  display: grid;
+  gap: 6px;
+}

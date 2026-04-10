@@ -46,27 +46,34 @@ const Analytics = () => {
   const buildPreview = (session) => {
     const questions = session.questions || [];
     const answered = questions.filter((q) => q.userAnswer).length;
+    const scored = questions.filter((q) => typeof q.similarityScore === "number");
     const strengths = session.strengths?.length
       ? session.strengths
-      : [...questions]
-        .filter((q) => typeof q.similarityScore === "number")
+      : [...scored]
         .sort((a, b) => b.similarityScore - a.similarityScore)
         .slice(0, 3)
         .map((q) => q.questionText);
 
     const improvements = session.improvements?.length
       ? session.improvements
-      : [...questions]
-        .filter((q) => typeof q.similarityScore === "number")
+      : [...scored]
         .sort((a, b) => a.similarityScore - b.similarityScore)
         .slice(0, 3)
         .map((q) => q.questionText);
+
+    const best = scored.length ? [...scored].sort((a, b) => b.similarityScore - a.similarityScore)[0] : null;
+    const lowest = scored.length ? [...scored].sort((a, b) => a.similarityScore - b.similarityScore)[0] : null;
+
+    const keywords = [...new Set(scored.flatMap((q) => q.keywordsFound || []))].slice(0, 8);
 
     return {
       questions,
       answered,
       strengths: strengths.length ? strengths : ["Keep practicing to unlock detailed insights."],
-      improvements: improvements.length ? improvements : ["Complete more answers to see tailored improvements."]
+      improvements: improvements.length ? improvements : ["Complete more answers to see tailored improvements."],
+      best,
+      lowest,
+      keywords
     };
   };
 
@@ -174,6 +181,18 @@ const Analytics = () => {
                                 <div className="report-score">{row.overallScore || 0}%</div>
                                 <div className="section-caption">Answered {preview.answered}/{preview.questions.length}</div>
                               </div>
+                              <div className="report-kpi">
+                                <div className="section-caption">Best Answer</div>
+                                <div>{preview.best?.questionText || "Complete a session to see."}</div>
+                                {preview.best && <div className="report-score-mini">{preview.best.similarityScore}%</div>}
+                              </div>
+                              <div className="report-kpi">
+                                <div className="section-caption">Needs Focus</div>
+                                <div>{preview.lowest?.questionText || "Complete a session to see."}</div>
+                                {preview.lowest && <div className="report-score-mini">{preview.lowest.similarityScore}%</div>}
+                              </div>
+                            </div>
+                            <div className="report-preview-grid" style={{ marginTop: "16px" }}>
                               <div>
                                 <div className="section-caption">Strengths</div>
                                 <ul className="report-list">
@@ -189,6 +208,14 @@ const Analytics = () => {
                                     <li key={`${row._id}-improve-${idx}`}>{item}</li>
                                   ))}
                                 </ul>
+                              </div>
+                              <div>
+                                <div className="section-caption">Keywords Used</div>
+                                <div className="report-tags">
+                                  {preview.keywords.length ? preview.keywords.map((keyword) => (
+                                    <span className="report-chip" key={`${row._id}-${keyword}`}>{keyword}</span>
+                                  )) : <span className="section-caption">No keywords captured yet.</span>}
+                                </div>
                               </div>
                             </div>
                             <div className="report-breakdown">
