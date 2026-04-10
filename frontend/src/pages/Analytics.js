@@ -65,6 +65,15 @@ const Analytics = () => {
     const lowest = scored.length ? [...scored].sort((a, b) => a.similarityScore - b.similarityScore)[0] : null;
 
     const keywords = [...new Set(scored.flatMap((q) => q.keywordsFound || []))].slice(0, 8);
+    const feedbackHighlights = scored
+      .filter((q) => q.feedback)
+      .slice(0, 3)
+      .map((q) => ({ text: q.feedback, score: q.similarityScore }));
+
+    const totalTime = questions.reduce((acc, q) => acc + (q.timeSpent || 0), 0);
+    const avgConfidence = scored.length
+      ? Math.round(scored.reduce((acc, q) => acc + (q.confidenceScore || 0), 0) / scored.length)
+      : 0;
 
     return {
       questions,
@@ -73,7 +82,10 @@ const Analytics = () => {
       improvements: improvements.length ? improvements : ["Complete more answers to see tailored improvements."],
       best,
       lowest,
-      keywords
+      keywords,
+      feedbackHighlights: feedbackHighlights.length ? feedbackHighlights : [{ text: "Answer more questions to see feedback highlights.", score: null }],
+      totalTime,
+      avgConfidence
     };
   };
 
@@ -94,6 +106,12 @@ const Analytics = () => {
   const bestScore = history.length
     ? Math.max(...history.map((item) => item.overallScore || 0))
     : 0;
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
 
   return (
     <div>
@@ -182,6 +200,12 @@ const Analytics = () => {
                                 <div className="section-caption">Answered {preview.answered}/{preview.questions.length}</div>
                               </div>
                               <div className="report-kpi">
+                                <div className="section-caption">Avg Confidence</div>
+                                <div className="report-score-mini">{preview.avgConfidence}%</div>
+                                <div className="section-caption">Total Time</div>
+                                <div>{formatTime(preview.totalTime)}</div>
+                              </div>
+                              <div className="report-kpi">
                                 <div className="section-caption">Best Answer</div>
                                 <div>{preview.best?.questionText || "Complete a session to see."}</div>
                                 {preview.best && <div className="report-score-mini">{preview.best.similarityScore}%</div>}
@@ -218,11 +242,27 @@ const Analytics = () => {
                                 </div>
                               </div>
                             </div>
+                            <div className="report-preview-grid" style={{ marginTop: "16px" }}>
+                              <div>
+                                <div className="section-caption">Feedback Highlights</div>
+                                <ul className="report-list">
+                                  {preview.feedbackHighlights.map((item, idx) => (
+                                    <li key={`${row._id}-feedback-${idx}`}>
+                                      {item.text}
+                                      {item.score !== null && <span className="report-score-mini"> {item.score}%</span>}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
                             <div className="report-breakdown">
                               <div className="section-caption">Question Breakdown</div>
                               {preview.questions.slice(0, 6).map((q, idx) => (
                                 <div key={`${row._id}-q-${idx}`} className="report-breakdown-row">
-                                  <div>{q.questionText || "Question"}</div>
+                                  <div>
+                                    <div>{q.questionText || "Question"}</div>
+                                    <div className="section-caption">Time: {formatTime(q.timeSpent || 0)} • Confidence: {q.confidenceScore ?? 0}%</div>
+                                  </div>
                                   <div className="report-score-mini">{q.similarityScore ?? 0}%</div>
                                 </div>
                               ))}
