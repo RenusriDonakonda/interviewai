@@ -19,11 +19,20 @@ const InterviewSession = () => {
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceError, setVoiceError] = useState("");
+  const [visionSupported, setVisionSupported] = useState(false);
+  const [cameraOn, setCameraOn] = useState(false);
+  const [faceConfidence, setFaceConfidence] = useState(0);
+  const [faceStatus, setFaceStatus] = useState("Camera off");
   const recognitionRef = useRef(null);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const detectorRef = useRef(null);
+  const detectTimerRef = useRef(null);
 
   useEffect(() => {
     const canUse = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
     setVoiceSupported(canUse);
+    setVisionSupported(!!window.FaceDetector);
   }, []);
 
   useEffect(() => {
@@ -79,6 +88,17 @@ const InterviewSession = () => {
       })
       .catch((err) => setError(err.message));
   }, [aiMode]);
+
+  useEffect(() => {
+    return () => {
+      if (detectTimerRef.current) {
+        clearInterval(detectTimerRef.current);
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
 
   const activeQuestion = session.questions[activeIndex];
   const progress = session.questions.length
@@ -147,6 +167,70 @@ const InterviewSession = () => {
     } else {
       recognitionRef.current.start();
       setListening(true);
+    }
+  };
+
+  const stopCamera = () => {
+    if (detectTimerRef.current) {
+      clearInterval(detectTimerRef.current);
+      detectTimerRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraOn(false);
+    setFaceStatus("Camera off");
+    setFaceConfidence(0);
+  };
+
+  const startCamera = async () => {
+    if (!visionSupported) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      detectorRef.current = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+      setCameraOn(true);
+      setFaceStatus("Scanning...");
+
+      if (detectTimerRef.current) clearInterval(detectTimerRef.current);
+      detectTimerRef.current = setInterval(async () => {
+        if (!videoRef.current || !detectorRef.current) return;
+        try {
+          const faces = await detectorRef.current.detect(videoRef.current);
+          if (!faces.length) {
+            setFaceStatus("No face detected");
+            setFaceConfidence((prev) => Math.max(0, prev - 5));
+            return;
+          }
+          const face = faces[0];
+          const box = face.boundingBox;
+          const videoWidth = videoRef.current.videoWidth || 1;
+          const videoHeight = videoRef.current.videoHeight || 1;
+
+          const faceArea = (box.width * box.height) / (videoWidth * videoHeight);
+          const centerX = (box.x + box.width / 2) / videoWidth;
+          const centerY = (box.y + box.height / 2) / videoHeight;
+          const centerScore = 1 - Math.min(1, Math.abs(centerX - 0.5) + Math.abs(centerY - 0.5));
+          const sizeScore = Math.min(1, Math.max(0, (faceArea - 0.05) / 0.25));
+          const rawScore = Math.round((centerScore * 0.5 + sizeScore * 0.5) * 100);
+
+          setFaceConfidence(rawScore);
+          setFaceStatus(rawScore >= 70 ? "Confident presence" : rawScore >= 45 ? "Steady presence" : "Needs focus");
+        } catch {
+          setFaceStatus("Scanning...");
+        }
+      }, 900);
+    } catch (err) {
+      setFaceStatus("Camera permission denied");
+      setCameraOn(false);
     }
   };
 
@@ -240,6 +324,42 @@ const InterviewSession = () => {
 
       <section className="section">
         <GlassCard>
+          <h3>Confidence Check (Camera)</h3>
+          <div className="section-caption">Your camera feed stays on your device. Nothing is uploaded.</div>
+          <div className="face-check">
+            <div className="face-video">
+              <video ref={videoRef} muted playsInline />
+            </div>
+            <div className="face-panel">
+              <div className="section-caption">Status</div>
+              <div className="face-status">{faceStatus}</div>
+              <div className="section-caption" style={{ marginTop: "12px" }}>Confidence Meter</div>
+              <div className="face-meter">
+                <div className="face-meter-fill" style={{ width: `${faceConfidence}%` }} />
+              </div>
+              <div className="section-caption">{faceConfidence}%</div>
+              <div style={{ marginTop: "12px" }}>
+                {!cameraOn ? (
+                  <button
+                    className="secondary-button"
+                    onClick={startCamera}
+                    disabled={!visionSupported}
+                  >
+                    {visionSupported ? "Enable Camera" : "Face detection not supported"}
+                  </button>
+                ) : (
+                  <button className="secondary-button" onClick={stopCamera}>
+                    Stop Camera
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+      </section>
+
+      <section className="section">
+        <GlassCard>
           <h3>AI Analysis</h3>
           <ScoreMeter label="Similarity Score" value={analysis?.similarityScore || 0} />
           <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", marginTop: "20px" }}>
@@ -262,5 +382,3 @@ const InterviewSession = () => {
 };
 
 export default InterviewSession;
-
-
