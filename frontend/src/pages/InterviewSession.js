@@ -435,7 +435,7 @@ const InterviewSession = () => {
                   </button>
                 ) : (
                   <button className="secondary-button" onClick={stopCamera}>
-                    Stop Camera
+                    Disable Camera
                   </button>
                 )}
               </div>
@@ -468,6 +468,7 @@ const InterviewSession = () => {
 };
 
 export default InterviewSession;
+
 
 
 
