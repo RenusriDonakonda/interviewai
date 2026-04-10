@@ -269,7 +269,7 @@ const InterviewSession = () => {
         await videoRef.current.play();
       }
 
-      if (window.FaceDetector) {
+      setCameraOn(true);\n\n      if (window.FaceDetector) {
         detectorRef.current = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
       } else {
         setFaceStatus("Loading on-device face model...");
@@ -426,18 +426,12 @@ const InterviewSession = () => {
               </div>
               <div className="section-caption">{faceConfidence}%</div>
               <div style={{ marginTop: "12px" }}>
-                {!cameraOn ? (
-                  <button
-                    className="secondary-button"
-                    onClick={startCamera}
-                  >
-                    Enable Camera
-                  </button>
-                ) : (
-                  <button className="secondary-button" onClick={stopCamera}>
-                    Disable Camera
-                  </button>
-                )}
+                <button
+                  className={cameraOn ? "secondary-button" : "primary-button"}
+                  onClick={cameraOn ? stopCamera : startCamera}
+                >
+                  {cameraOn ? "Disable Camera" : "Enable Camera"}
+                </button>
               </div>
             </div>
           </div>
@@ -468,6 +462,9 @@ const InterviewSession = () => {
 };
 
 export default InterviewSession;
+
+
+
 
 
 
