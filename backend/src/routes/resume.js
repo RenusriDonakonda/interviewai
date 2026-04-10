@@ -8,9 +8,17 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = ["application/pdf", "text/plain"];
-    if (!allowed.includes(file.mimetype)) {
+    const allowedTypes = ["application/pdf", "text/plain", "application/octet-stream", ""];
+    const lowerName = (file.originalname || "").toLowerCase();
+    const allowedExt = lowerName.endsWith(".pdf") || lowerName.endsWith(".txt");
+
+    if (!allowedTypes.includes(file.mimetype) && !allowedExt) {
       const error = new Error("Unsupported file type. Please upload a PDF or TXT file.");
+      error.status = 400;
+      return cb(error);
+    }
+    if (!allowedExt) {
+      const error = new Error("File extension not supported. Please upload a PDF or TXT file.");
       error.status = 400;
       return cb(error);
     }

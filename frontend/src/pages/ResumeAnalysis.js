@@ -4,7 +4,7 @@ import GlassCard from "../components/GlassCard";
 import { api } from "../api";
 
 const MAX_SIZE_BYTES = 2 * 1024 * 1024;
-const ALLOWED_TYPES = ["application/pdf", "text/plain"];
+const ALLOWED_TYPES = ["application/pdf", "text/plain", "application/octet-stream", ""];
 
 const ResumeAnalysis = () => {
   const [skills, setSkills] = useState([]);
@@ -31,6 +31,11 @@ const ResumeAnalysis = () => {
 
   const validateFile = (file) => {
     if (!file) return "";
+    const lowerName = (file.name || "").toLowerCase();
+    const allowedExt = lowerName.endsWith(".pdf") || lowerName.endsWith(".txt");
+    if (!allowedExt) {
+      return "Unsupported file extension. Please upload a PDF or TXT resume.";
+    }
     if (!ALLOWED_TYPES.includes(file.type)) {
       return "Unsupported file type. Please upload a PDF or TXT resume.";
     }
