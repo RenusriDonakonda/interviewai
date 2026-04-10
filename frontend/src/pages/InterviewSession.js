@@ -41,8 +41,6 @@ const InterviewSession = () => {
         const result = event.results[i];
         if (result.isFinal) {
           finalText += result[0].transcript;
-        } else {
-          interim += result[0].transcript;
         }
       }
       if (finalText) {
@@ -264,4 +262,5 @@ const InterviewSession = () => {
 };
 
 export default InterviewSession;
+
 
