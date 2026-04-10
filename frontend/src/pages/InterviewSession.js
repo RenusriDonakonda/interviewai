@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import GlassCard from "../components/GlassCard";
 import ScoreMeter from "../components/ScoreMeter";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -16,6 +16,52 @@ const InterviewSession = () => {
   const [timerRunning, setTimerRunning] = useState(true);
   const [aiMode, setAiMode] = useState("classic");
   const [streamingText, setStreamingText] = useState("");
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [voiceError, setVoiceError] = useState("");
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    const canUse = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    setVoiceSupported(canUse);
+  }, []);
+
+  useEffect(() => {
+    if (!voiceSupported) return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+      let interim = "";
+      let finalText = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalText += result[0].transcript;
+        } else {
+          interim += result[0].transcript;
+        }
+      }
+      if (finalText) {
+        setAnswer((prev) => `${prev}${prev ? " " : ""}${finalText.trim()}`);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      setVoiceError(event.error || "Voice input error.");
+      setListening(false);
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+    };
+
+    recognitionRef.current = recognition;
+  }, [voiceSupported]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -95,6 +141,18 @@ const InterviewSession = () => {
     setTimerRunning(true);
   };
 
+  const toggleListening = () => {
+    if (!recognitionRef.current) return;
+    setVoiceError("");
+    if (listening) {
+      recognitionRef.current.stop();
+      setListening(false);
+    } else {
+      recognitionRef.current.start();
+      setListening(true);
+    }
+  };
+
   const minutes = String(Math.floor(timeLeft / 60)).padStart(2, "0");
   const seconds = String(timeLeft % 60).padStart(2, "0");
 
@@ -144,6 +202,26 @@ const InterviewSession = () => {
               placeholder="Type your answer here..."
             />
             <div className="section-caption">{answer.length} characters</div>
+            {voiceSupported && (
+              <div className="voice-controls">
+                <button
+                  className={listening ? "primary-button" : "secondary-button"}
+                  type="button"
+                  onClick={toggleListening}
+                >
+                  {listening ? "Stop Voice" : "Start Voice"}
+                </button>
+                <span className="section-caption">
+                  {listening ? "Listening... Speak clearly." : "Use voice to answer hands-free."}
+                </span>
+              </div>
+            )}
+            {voiceError && (
+              <div className="badge" style={{ background: "rgba(239, 68, 68, 0.2)" }}>{voiceError}</div>
+            )}
+            {!voiceSupported && (
+              <div className="section-caption">Voice input not supported in this browser.</div>
+            )}
           </div>
           <div className="badge">Time Remaining: {minutes}:{seconds}</div>
           {error && <div className="badge" style={{ background: "rgba(239, 68, 68, 0.2)" }}>{error}</div>}

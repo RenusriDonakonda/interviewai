@@ -758,3 +758,15 @@ textarea {
   }
 }
 
+
+.voice-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.voice-controls .section-caption {
+  color: var(--text-muted);
+}
